@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const _ = require("underscore");
 const superfly_timeline_1 = require("superfly-timeline");
 exports.TriggerType = superfly_timeline_1.TriggerType;
+let clone = require('fast-clone');
 const casparCG_1 = require("./devices/casparCG");
 const abstract_1 = require("./devices/abstract");
 const mapping_1 = require("./devices/mapping");
@@ -204,10 +205,18 @@ class Conductor extends events_1.EventEmitter {
         const now = this.getCurrentTime();
         let resolveTime = this._nextResolveTime || now;
         // console.log('resolveTimeline ' + resolveTime + ' -----------------------------')
+        if (resolveTime > now + LOOKAHEADTIME) {
+            console.log('Too far ahead (' + resolveTime + ')');
+            this._triggerResolveTimeline(LOOKAHEADTIME);
+            return;
+        }
         this._fixNowObjects(resolveTime);
         let timeline = this.timeline;
+        // @ts-ignore
+        // console.log('timeline', JSON.stringify(timeline, ' ', 2))
         // Generate the state for that time:
-        let tlState = superfly_timeline_1.Resolver.getState(timeline, resolveTime);
+        let tlState = superfly_timeline_1.Resolver.getState(clone(timeline), resolveTime);
+        // console.log('tlState', tlState.LLayers)
         // Split the state into substates that are relevant for each device
         let getFilteredLayers = (layers, device) => {
             let filteredState = {};
@@ -229,6 +238,7 @@ class Conductor extends events_1.EventEmitter {
                 LLayers: getFilteredLayers(tlState.LLayers, device),
                 GLayers: getFilteredLayers(tlState.GLayers, device)
             };
+            // console.log('State of device ' + device.deviceName, tlState.LLayers )
             // Pass along the state to the device, it will generate its commands and execute them:
             device.handleState(subState);
         });
@@ -260,22 +270,30 @@ class Conductor extends events_1.EventEmitter {
                 this._timelineCallback.queue(resolveTime, o.id, o.content.callBack, o.content.callBackData);
             }
         });
+        // console.log('this._nextResolveTime', this._nextResolveTime)
         this._triggerResolveTimeline(timeUntilNextResolve);
     }
     _fixNowObjects(now) {
+        let fixObjects = (objs) => {
+            _.each(objs, (o) => {
+                if ((o.trigger || {}).type === superfly_timeline_1.TriggerType.TIME_ABSOLUTE &&
+                    o.trigger.value === 'now') {
+                    o.trigger.value = now; // set the objects to "now" so that they are resolved correctly right now
+                    objectsFixed.push(o.id);
+                }
+                if (o.content.objects) {
+                    fixObjects(o.content.objects);
+                }
+            });
+        };
         let objectsFixed = [];
-        _.each(this.timeline, (o) => {
-            if ((o.trigger || {}).type === superfly_timeline_1.TriggerType.TIME_ABSOLUTE &&
-                o.trigger.value === 'now') {
-                o.trigger.value = now; // set the objects to "now" so that they are resolved correctly right now
-                objectsFixed.push(o.id);
-            }
-        });
+        fixObjects(this.timeline);
         if (objectsFixed.length) {
             let r = {
                 time: now,
                 objectIds: objectsFixed
             };
+            // console.log('setTimelineTriggerTime', r)
             this.emit('setTimelineTriggerTime', r);
         }
     }
