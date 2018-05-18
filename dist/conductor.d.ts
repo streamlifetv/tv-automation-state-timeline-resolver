@@ -4,7 +4,6 @@ import { Device, DeviceOptions } from './devices/device';
 import { Mappings } from './devices/mapping';
 import { EventEmitter } from 'events';
 export interface TimelineContentObject extends TimelineObject {
-    roId: string;
 }
 export { TriggerType };
 export interface TimelineTriggerTimeResult {

@@ -11,6 +11,15 @@ export interface CasparCGOptions {
     host: string;
     port: number;
 }
+export declare enum TimelineContentTypeCasparCg {
+    VIDEO = "video",
+    IP = "ip",
+    INPUT = "input",
+    TEMPLATE = "template",
+    ROUTE = "route",
+    RECORD = "record",
+    AUDIO = "audio",
+}
 export declare class CasparCGDevice extends Device {
     private _ccg;
     private _ccgState;

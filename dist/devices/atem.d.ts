@@ -11,6 +11,12 @@ export interface AtemOptions {
     host: string;
     port?: number;
 }
+export declare enum TimelineContentTypeAtem {
+    ME = "me",
+    DSK = "dsk",
+    AUX = "aux",
+    SSRC = "ssrc",
+}
 export declare class AtemDevice extends Device {
     private _queue;
     private _device;

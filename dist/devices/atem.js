@@ -5,6 +5,13 @@ const device_1 = require("./device");
 const mapping_1 = require("./mapping");
 const atem_connection_1 = require("atem-connection");
 const atem_state_1 = require("atem-state");
+var TimelineContentTypeAtem;
+(function (TimelineContentTypeAtem) {
+    TimelineContentTypeAtem["ME"] = "me";
+    TimelineContentTypeAtem["DSK"] = "dsk";
+    TimelineContentTypeAtem["AUX"] = "aux";
+    TimelineContentTypeAtem["SSRC"] = "ssrc";
+})(TimelineContentTypeAtem = exports.TimelineContentTypeAtem || (exports.TimelineContentTypeAtem = {}));
 class AtemDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options) {
         super(deviceId, deviceOptions, options);
@@ -77,35 +84,35 @@ class AtemDevice extends device_1.Device {
                     obj[mapping.index] = tlObject.content;
                 }
                 switch (mapping.mappingType) {
-                    case (mapping_1.MappingAtemType.MixEffect):
+                    case mapping_1.MappingAtemType.MixEffect:
                         obj = {
                             video: {
                                 ME: obj
                             }
                         };
                         break;
-                    case (mapping_1.MappingAtemType.DownStreamKeyer):
+                    case mapping_1.MappingAtemType.DownStreamKeyer:
                         obj = {
                             video: {
                                 downstreamKeyers: obj
                             }
                         };
                         break;
-                    case (mapping_1.MappingAtemType.SuperSourceBox):
+                    case mapping_1.MappingAtemType.SuperSourceBox:
                         obj = {
                             video: {
                                 superSourceBoxes: obj
                             }
                         };
                         break;
-                    case (mapping_1.MappingAtemType.Auxilliary):
+                    case mapping_1.MappingAtemType.Auxilliary:
                         obj = {
                             video: {
                                 auxilliaries: obj
                             }
                         };
                         break;
-                    case (mapping_1.MappingAtemType.MediaPlayer):
+                    case mapping_1.MappingAtemType.MediaPlayer:
                         obj = {
                             mediaState: {
                                 players: obj

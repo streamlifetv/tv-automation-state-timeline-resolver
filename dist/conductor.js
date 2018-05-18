@@ -39,8 +39,12 @@ class Conductor extends events_1.EventEmitter {
         this._timelineCallback.on('callback', (...args) => {
             this.emit('timelineCallback', ...args);
         });
-        if (options.autoInit)
-            this.init();
+        if (options.autoInit) {
+            this.init()
+                .catch((e) => {
+                console.log('Error during auto-init: ', e);
+            });
+        }
     }
     /**
      * Initializes the devices that were passed as options.
@@ -136,13 +140,13 @@ class Conductor extends events_1.EventEmitter {
     removeDevice(deviceId) {
         let device = this.devices[deviceId];
         if (device) {
-            let ps = device.terminate();
-            ps.then((res) => {
+            return device.terminate()
+                .then((res) => {
                 if (res) {
                     delete this.devices[deviceId];
                 }
+                return res;
             });
-            return ps;
         }
         else {
             return new Promise((resolve) => resolve(false));
@@ -150,7 +154,7 @@ class Conductor extends events_1.EventEmitter {
     }
     destroy() {
         return Promise.all(_.map(_.keys(this.devices), (deviceId) => {
-            this.removeDevice(deviceId);
+            return this.removeDevice(deviceId);
         }))
             .then(() => {
             return;
@@ -274,6 +278,7 @@ class Conductor extends events_1.EventEmitter {
         this._triggerResolveTimeline(timeUntilNextResolve);
     }
     _fixNowObjects(now) {
+        let objectsFixed = [];
         let fixObjects = (objs) => {
             _.each(objs, (o) => {
                 if ((o.trigger || {}).type === superfly_timeline_1.TriggerType.TIME_ABSOLUTE &&
@@ -286,7 +291,6 @@ class Conductor extends events_1.EventEmitter {
                 }
             });
         };
-        let objectsFixed = [];
         fixObjects(this.timeline);
         if (objectsFixed.length) {
             let r = {

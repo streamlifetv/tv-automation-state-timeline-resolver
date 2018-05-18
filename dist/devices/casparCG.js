@@ -5,6 +5,16 @@ const device_1 = require("./device");
 const casparcg_connection_1 = require("casparcg-connection");
 const mapping_1 = require("./mapping");
 const casparcg_state_1 = require("casparcg-state");
+var TimelineContentTypeCasparCg;
+(function (TimelineContentTypeCasparCg) {
+    TimelineContentTypeCasparCg["VIDEO"] = "video";
+    TimelineContentTypeCasparCg["IP"] = "ip";
+    TimelineContentTypeCasparCg["INPUT"] = "input";
+    TimelineContentTypeCasparCg["TEMPLATE"] = "template";
+    TimelineContentTypeCasparCg["ROUTE"] = "route";
+    TimelineContentTypeCasparCg["RECORD"] = "record";
+    TimelineContentTypeCasparCg["AUDIO"] = "audio";
+})(TimelineContentTypeCasparCg = exports.TimelineContentTypeCasparCg || (exports.TimelineContentTypeCasparCg = {}));
 class CasparCGDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options) {
         super(deviceId, deviceOptions, options);
@@ -147,7 +157,7 @@ class CasparCGDevice extends device_1.Device {
                 channel.fps = 50;
                 caspar.channels[channel.channelNo] = channel;
                 let stateLayer = null;
-                if (layer.content.type === 'video') {
+                if (layer.content.type === TimelineContentTypeCasparCg.VIDEO) {
                     let l = {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.MEDIA,
@@ -159,7 +169,7 @@ class CasparCGDevice extends device_1.Device {
                     };
                     stateLayer = l;
                 }
-                else if (layer.content.type === 'ip') {
+                else if (layer.content.type === TimelineContentTypeCasparCg.IP) {
                     let l = {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.MEDIA,
@@ -170,7 +180,7 @@ class CasparCGDevice extends device_1.Device {
                     };
                     stateLayer = l;
                 }
-                else if (layer.content.type === 'input') {
+                else if (layer.content.type === TimelineContentTypeCasparCg.INPUT) {
                     let l = {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.INPUT,
@@ -183,7 +193,7 @@ class CasparCGDevice extends device_1.Device {
                     };
                     stateLayer = l;
                 }
-                else if (layer.content.type === 'template') {
+                else if (layer.content.type === TimelineContentTypeCasparCg.TEMPLATE) {
                     let l = {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.TEMPLATE,
@@ -196,7 +206,7 @@ class CasparCGDevice extends device_1.Device {
                     };
                     stateLayer = l;
                 }
-                else if (layer.content.type === 'route') {
+                else if (layer.content.type === TimelineContentTypeCasparCg.ROUTE) {
                     if (layer.content.attributes.LLayer) {
                         let routeMapping = this.mapping[layer.content.attributes.LLayer];
                         if (routeMapping) {
@@ -217,7 +227,7 @@ class CasparCGDevice extends device_1.Device {
                     };
                     stateLayer = l;
                 }
-                else if (layer.content.type === 'record') {
+                else if (layer.content.type === TimelineContentTypeCasparCg.RECORD) {
                     if (layer.resolved.startTime) {
                         let l = {
                             layerNo: mapping.layer,
@@ -242,7 +252,11 @@ class CasparCGDevice extends device_1.Device {
                 if (stateLayer) {
                     if (layer.content.transitions) {
                         switch (layer.content.type) {
-                            case 'video' || 'ip' || 'template' || 'input' || 'route':
+                            case TimelineContentTypeCasparCg.VIDEO:
+                            case TimelineContentTypeCasparCg.IP:
+                            case TimelineContentTypeCasparCg.TEMPLATE:
+                            case TimelineContentTypeCasparCg.INPUT:
+                            case TimelineContentTypeCasparCg.ROUTE:
                                 // create transition object
                                 let media = stateLayer.media;
                                 let transitions = {};
