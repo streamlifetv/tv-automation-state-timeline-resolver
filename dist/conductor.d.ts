@@ -12,9 +12,6 @@ export interface TimelineTriggerTimeResult {
 }
 export { Device } from './devices/device';
 export interface ConductorOptions {
-    devices: {
-        [deviceName: string]: DeviceOptions;
-    };
     initializeAsClear: boolean;
     getCurrentTime: () => number;
     autoInit?: boolean;
@@ -31,10 +28,10 @@ export declare class Conductor extends EventEmitter {
     private _nextResolveTime;
     private _resolveTimelineTrigger;
     private _isInitialized;
-    private _timelineCallback;
+    private _doOnTime;
     constructor(options: ConductorOptions);
     /**
-     * Initializes the devices that were passed as options.
+     * Initialization, TODO, maybe do something here?
      */
     init(): Promise<void>;
     /**
@@ -44,15 +41,10 @@ export declare class Conductor extends EventEmitter {
     mapping: Mappings;
     timeline: Array<TimelineContentObject>;
     getDevices(): Array<Device>;
-    getDevice(deviceId: any): Device;
-    addDevice(deviceId: any, deviceOptions: DeviceOptions): Promise<any>;
-    removeDevice(deviceId: string): Promise<boolean>;
+    getDevice(deviceId: string): Device;
+    addDevice(deviceId: any, deviceOptions: DeviceOptions): Promise<Device>;
+    removeDevice(deviceId: string): Promise<void>;
     destroy(): Promise<void>;
-    /**
-     * Sets up the devices as they were passed to the constructor via the options object.
-     * @todo: allow for runtime reconfiguration of devices.
-     */
-    private _initializeDevices();
     /**
      * Resets the resolve-time, so that the resolving will happen for the point-in time NOW
      * next time

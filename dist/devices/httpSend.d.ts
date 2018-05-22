@@ -1,15 +1,16 @@
 import { Device, DeviceOptions } from './device';
 import { DeviceType } from './mapping';
 import { TimelineState } from 'superfly-timeline';
-export interface AbstractDeviceOptions extends DeviceOptions {
+export interface HttpSendDeviceOptions extends DeviceOptions {
     options?: {
         commandReceiver?: (time: number, cmd) => void;
     };
 }
-export declare class AbstractDevice extends Device {
+export declare class HttpSendDevice extends Device {
+    private _doOnTime;
     private _queue;
     private _commandReceiver;
-    constructor(deviceId: string, deviceOptions: AbstractDeviceOptions, options: any);
+    constructor(deviceId: string, deviceOptions: HttpSendDeviceOptions, options: any);
     /**
      * Initiates the connection with CasparCG through the ccg-connection lib.
      */
@@ -17,10 +18,11 @@ export declare class AbstractDevice extends Device {
     handleState(newState: TimelineState): void;
     clearFuture(clearAfterTime: number): void;
     readonly connected: boolean;
-    convertStateToAbstract(state: TimelineState): TimelineState;
+    convertStateToHttpSend(state: TimelineState): TimelineState;
     readonly deviceType: DeviceType;
     readonly deviceName: string;
     readonly queue: any[];
-    private _diffStates(oldAbstractState, newAbstractState);
+    private _addToQueue(commandsToAchieveState, time);
+    private _diffStates(oldhttpSendState, newhttpSendState);
     private _defaultCommandReceiver(time, cmd);
 }

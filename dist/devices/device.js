@@ -84,6 +84,9 @@ class Device extends events_1.EventEmitter {
         // return DeviceType.ABSTRACT
         throw new Error('This class method must be replaced by the Device class!');
     }
+    get deviceOptions() {
+        return this._deviceOptions;
+    }
 }
 exports.Device = Device;
 //# sourceMappingURL=device.js.map

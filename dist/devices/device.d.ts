@@ -35,4 +35,5 @@ export declare class Device extends EventEmitter {
     deviceId: string;
     readonly deviceName: string;
     readonly deviceType: DeviceType;
+    readonly deviceOptions: DeviceOptions;
 }

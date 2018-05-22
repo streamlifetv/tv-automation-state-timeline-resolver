@@ -9,6 +9,8 @@ class AbstractDevice extends device_1.Device {
         if (deviceOptions.options) {
             if (deviceOptions.options.commandReceiver)
                 this._commandReceiver = deviceOptions.options.commandReceiver;
+            else
+                this._commandReceiver = this._defaultCommandReceiver;
         }
         setInterval(() => {
             // send any commands due:
@@ -111,6 +113,11 @@ class AbstractDevice extends device_1.Device {
             }
         });
         return commands;
+    }
+    _defaultCommandReceiver(time, cmd) {
+        time = time;
+        // execute the command here
+        cmd = cmd;
     }
 }
 exports.AbstractDevice = AbstractDevice;

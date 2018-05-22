@@ -92,7 +92,7 @@ class CasparCGDevice extends device_1.Device {
         let newCasparState = this.convertStateToCaspar(newState);
         let oldCasparState = this.convertStateToCaspar(oldState);
         let commandsToAchieveState = this._diffStates(oldCasparState, newCasparState);
-        // clear any queued commands on this time:
+        // clear any queued commands later than this time:
         let now = this.getCurrentTime();
         for (let token in this._queue) {
             if (this._queue[token] < now) {
@@ -154,7 +154,7 @@ class CasparCGDevice extends device_1.Device {
                 const channel = caspar.channels[mapping.channel] ? caspar.channels[mapping.channel] : new casparcg_state_1.CasparCG.Channel();
                 channel.channelNo = Number(mapping.channel) || 1;
                 // @todo: check if we need to get fps.
-                channel.fps = 50;
+                channel.fps = 50 / 1000; // 50 fps over 1000ms
                 caspar.channels[channel.channelNo] = channel;
                 let stateLayer = null;
                 if (layer.content.type === TimelineContentTypeCasparCg.VIDEO) {
@@ -174,7 +174,7 @@ class CasparCGDevice extends device_1.Device {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.MEDIA,
                         media: layer.content.attributes.uri,
-                        playTime: layer.resolved.startTime || null,
+                        playTime: null,
                         playing: true,
                         seek: 0 // ip inputs can't be seeked
                     };
@@ -304,7 +304,7 @@ class CasparCGDevice extends device_1.Device {
             if (cmd._commandName === 'PlayCommand' && cmd._objectParams.clip !== 'empty') {
                 if (oldState.time > 0 && time > this.getCurrentTime()) { // @todo: put the loadbg command just after the oldState.time when convenient?
                     // console.log('making a loadbg out of it ', time , this.getCurrentTime())
-                    let loadbgCmd = Object.assign({}, cmd); // make a deep copy
+                    let loadbgCmd = Object.assign({}, cmd); // make a shallow copy
                     loadbgCmd._commandName = 'LoadbgCommand';
                     let command = casparcg_connection_1.AMCPUtil.deSerialize(loadbgCmd, 'id');
                     let scheduleCommand = command;
