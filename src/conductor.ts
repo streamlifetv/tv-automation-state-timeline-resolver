@@ -10,10 +10,11 @@ let clone = require('fast-clone')
 import { Device, DeviceOptions } from './devices/device'
 import { CasparCGDevice } from './devices/casparCG'
 import { AbstractDevice } from './devices/abstract'
+import { HttpSendDevice } from './devices/httpSend'
 import { Mappings, Mapping, DeviceType } from './devices/mapping'
 import { AtemDevice } from './devices/atem'
 import { EventEmitter } from 'events'
-import { TimelineCallback } from './timelineCallback'
+import { DoOnTime } from './doOnTime'
 
 const LOOKAHEADTIME = 5000 // Will look ahead this far into the future
 const PREPARETIME = 2000 // Will prepare commands this time before the event is to happen
@@ -34,9 +35,9 @@ export { Device } from './devices/device'
 // export interface Device {}
 
 export interface ConductorOptions {
-	devices: {
-		[deviceName: string]: DeviceOptions
-	},
+	// devices: {
+	// 	[deviceName: string]: DeviceOptions
+	// },
 	initializeAsClear: boolean, // don't do any initial checks with devices to determine state, instead assume that everything is clear, black and quiet
 	getCurrentTime: () => number,
 	autoInit?: boolean
@@ -58,11 +59,13 @@ export class Conductor extends EventEmitter {
 	private _nextResolveTime: number = 0
 	private _resolveTimelineTrigger: NodeJS.Timer
 	private _isInitialized: boolean = false
-	private _timelineCallback: TimelineCallback
+	private _doOnTime: DoOnTime
 
 	constructor (options: ConductorOptions) {
 		super()
 		this._options = options
+
+		this._options = this._options // ts-lint fix: not used
 
 		if (options.getCurrentTime) this._getCurrentTime = options.getCurrentTime
 
@@ -72,10 +75,10 @@ export class Conductor extends EventEmitter {
 			}
 		}, 2500)
 
-		this._timelineCallback = new TimelineCallback(this.getCurrentTime)
-		this._timelineCallback.on('callback', (...args) => {
-			this.emit('timelineCallback', ...args)
-		})
+		this._doOnTime = new DoOnTime(this.getCurrentTime)
+		// this._doOnTime.on('callback', (...args) => {
+		// 	this.emit('timelineCallback', ...args)
+		// })
 
 		if (options.autoInit) {
 			this.init()
@@ -86,14 +89,13 @@ export class Conductor extends EventEmitter {
 
 	}
 	/**
-	 * Initializes the devices that were passed as options.
+	 * Initialization, TODO, maybe do something here?
 	 */
 	public init (): Promise<void> {
-		return this._initializeDevices()
-		.then(() => {
-			this._isInitialized = true
-			this._resetResolver()
-		})
+		this._isInitialized = true
+		this._resetResolver()
+
+		return Promise.resolve()
 	}
 	/**
 	 * Returns a nice, synchronized time.
@@ -141,46 +143,45 @@ export class Conductor extends EventEmitter {
 	public getDevices (): Array<Device> {
 		return _.values(this.devices)
 	}
-	public getDevice (deviceId) {
+	public getDevice (deviceId: string) {
 		return this.devices[deviceId]
 	}
-	public addDevice (deviceId, deviceOptions: DeviceOptions): Promise<any> {
-		let newDevice: Device | null = null
+	public addDevice (deviceId, deviceOptions: DeviceOptions): Promise<Device> {
+		let newDevice: Device
 
 		if (deviceOptions.type === DeviceType.ABSTRACT) {
 			// Add Abstract device:
 			newDevice = new AbstractDevice(deviceId, deviceOptions, {
-				// TODO: Add options
 				getCurrentTime: () => { return this.getCurrentTime() }
 			}) as Device
 		} else if (deviceOptions.type === DeviceType.CASPARCG) {
 			// Add CasparCG device:
 			newDevice = new CasparCGDevice(deviceId, deviceOptions, {
-				// TODO: Add options
 				getCurrentTime: () => { return this.getCurrentTime() }
 			}) as Device
 		} else if (deviceOptions.type === DeviceType.ATEM) {
 			newDevice = new AtemDevice(deviceId, deviceOptions, {
-				// TODO: Add options
 				getCurrentTime: () => { return this.getCurrentTime() }
 			}) as Device
+		} else if (deviceOptions.type === DeviceType.HTTPSEND) {
+			newDevice = new HttpSendDevice(deviceId, deviceOptions, {
+				getCurrentTime: () => { return this.getCurrentTime() }
+			}) as Device
+		} else {
+			return Promise.reject('No matching device type for "' + deviceOptions.type + '" found')
 		}
-		if (newDevice) {
-			console.log('Initializing ' + DeviceType[deviceOptions.type] + '...')
-			this.devices[deviceId] = newDevice
-			newDevice.mapping = this.mapping
-			return newDevice.init(deviceOptions.options)
-			.then((device) => {
-				console.log(DeviceType[deviceOptions.type] + ' initialized!')
-				return device
-			})
-		}
-		// if we cannot find a device:
-		return new Promise((resolve) => {
-			resolve(false)
+
+		console.log('Initializing ' + DeviceType[deviceOptions.type] + '...')
+		this.devices[deviceId] = newDevice
+		newDevice.mapping = this.mapping
+
+		return newDevice.init(deviceOptions.options)
+		.then(() => {
+			console.log(DeviceType[deviceOptions.type] + ' initialized!')
+			return newDevice
 		})
 	}
-	public removeDevice (deviceId: string): Promise<boolean> {
+	public removeDevice (deviceId: string): Promise<void> {
 		let device = this.devices[deviceId]
 
 		if (device) {
@@ -189,10 +190,9 @@ export class Conductor extends EventEmitter {
 				if (res) {
 					delete this.devices[deviceId]
 				}
-				return res
 			})
 		} else {
-			return new Promise((resolve) => resolve(false))
+			return Promise.reject('No device found')
 		}
 	}
 	public destroy (): Promise<void> {
@@ -203,19 +203,8 @@ export class Conductor extends EventEmitter {
 			return
 		})
 	}
-
-	/**
-	 * Sets up the devices as they were passed to the constructor via the options object.
-	 * @todo: allow for runtime reconfiguration of devices.
-	 */
-	private _initializeDevices (): Promise<any> {
-		const ps: Array<Promise<any>> = []
-		_.each(this._options.devices, (deviceOptions, deviceId) => {
-			ps.push(this.addDevice(deviceId, deviceOptions))
-		})
-
-		return Promise.all(ps)
-	}
+	// 	return Promise.all(ps)
+	// }
 	/**
 	 * Resets the resolve-time, so that the resolving will happen for the point-in time NOW
 	 * next time
@@ -259,7 +248,7 @@ export class Conductor extends EventEmitter {
 		const now = this.getCurrentTime()
 		let resolveTime: number = this._nextResolveTime || now
 
-		// console.log('resolveTimeline ' + resolveTime + ' -----------------------------')
+		console.log('resolveTimeline ' + resolveTime + ' -----------------------------')
 
 		if (resolveTime > now + LOOKAHEADTIME) {
 			console.log('Too far ahead (' + resolveTime + ')')
@@ -304,7 +293,11 @@ export class Conductor extends EventEmitter {
 			}
 			// console.log('State of device ' + device.deviceName, tlState.LLayers )
 			// Pass along the state to the device, it will generate its commands and execute them:
-			device.handleState(subState)
+			try {
+				device.handleState(subState)
+			} catch (e) {
+				console.log('Error in device "' + device.deviceId + '"', e)
+			}
 		})
 
 		// Now that we've handled this point in time, it's time to determine what the next point in time is:
@@ -345,7 +338,16 @@ export class Conductor extends EventEmitter {
 		// Special function: send callback to Core
 		_.each (tlState.GLayers, (o: TimelineResolvedObject) => {
 			if (o.content.callBack) {
-				this._timelineCallback.queue(resolveTime, o.id, o.content.callBack, o.content.callBackData)
+				// this._doOnTime.queue(resolveTime, o.id, o.content.callBack, o.content.callBackData)
+				// this._doOnTime.queue(o.resolved.startTime, o.id, o.content.callBack, o.content.callBackData)
+				this._doOnTime.queue(o.resolved.startTime, () => {
+					this.emit('timelineCallback',
+						o.resolved.startTime,
+						o.id,
+						o.content.callBack,
+						o.content.callBackData
+					)
+				})
 			}
 		})
 
