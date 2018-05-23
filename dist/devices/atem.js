@@ -11,10 +11,12 @@ var TimelineContentTypeAtem;
     TimelineContentTypeAtem["DSK"] = "dsk";
     TimelineContentTypeAtem["AUX"] = "aux";
     TimelineContentTypeAtem["SSRC"] = "ssrc";
+    TimelineContentTypeAtem["MEDIAPLAYER"] = "mp";
 })(TimelineContentTypeAtem = exports.TimelineContentTypeAtem || (exports.TimelineContentTypeAtem = {}));
 class AtemDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options) {
         super(deviceId, deviceOptions, options);
+        this._initialized = false;
         if (deviceOptions.options) {
             if (deviceOptions.options.commandReceiver)
                 this._commandReceiver = deviceOptions.options.commandReceiver;
@@ -44,14 +46,37 @@ class AtemDevice extends device_1.Device {
             this._state = new atem_state_1.AtemState();
             this._device = new atem_connection_1.Atem();
             this._device.connect(options.host, options.port);
-            this._device.once('connected', () => resolve(true));
+            this._device.once('connected', () => {
+                // check if state has been initialized:
+                if (typeof this._device.state.info.capabilities !== 'undefined') {
+                    this._initialized = true;
+                    resolve(true);
+                }
+                else {
+                    let interval = setInterval(() => {
+                        if (typeof this._device.state.info.capabilities !== 'undefined') {
+                            clearInterval(interval);
+                            this._initialized = true;
+                            resolve(true);
+                        }
+                    }, 100);
+                }
+            });
         });
     }
     handleState(newState) {
         // Handle this new state, at the point in time specified
+        // @ts-ignore
+        // console.log('handleState', JSON.stringify(newState, ' ', 2))
+        if (!this._initialized) {
+            // before it's initialized don't do anything
+            return;
+        }
         let oldState = this.getStateBefore(newState.time) || { time: 0, LLayers: {}, GLayers: {} };
         let oldAtemState = this.convertStateToAtem(oldState);
         let newAtemState = this.convertStateToAtem(newState);
+        // @ts-ignore
+        // console.log('newAtemState', JSON.stringify(newAtemState, ' ', 2))
         let commandsToAchieveState = this._diffStates(oldAtemState, newAtemState);
         // clear any queued commands on this time:
         this._queue = _.reject(this._queue, (q) => { return q.time === newState.time; });
@@ -73,65 +98,62 @@ class AtemDevice extends device_1.Device {
         return false;
     }
     convertStateToAtem(state) {
-        // @todo: convert the timeline state into something we can use
+        if (!this._initialized)
+            throw Error('convertStateToAtem cannot be used before inititialized');
+        // Convert the timeline state into something we can use easier:
         const deviceState = this._getDefaultState();
         _.each(state.LLayers, (tlObject, layerName) => {
-            let obj = tlObject.content;
+            let content = tlObject.content;
             const mapping = this.mapping[layerName];
             if (mapping) {
-                if (mapping.index !== undefined) {
-                    obj = {};
-                    obj[mapping.index] = tlObject.content;
-                }
+                if (!(mapping.index !== undefined && mapping.index >= 0))
+                    return; // index must be 0 or higher
+                // 	obj = {}
+                // 	obj[mapping.index] = tlObject.content
+                // }
                 switch (mapping.mappingType) {
                     case mapping_1.MappingAtemType.MixEffect:
-                        obj = {
-                            video: {
-                                ME: obj
-                            }
-                        };
+                        if (content.type === TimelineContentTypeAtem.ME) {
+                            let me = deviceState.video.ME[mapping.index];
+                            _.extend(me, content.attributes);
+                        }
                         break;
                     case mapping_1.MappingAtemType.DownStreamKeyer:
-                        obj = {
-                            video: {
-                                downstreamKeyers: obj
-                            }
-                        };
+                        if (content.type === TimelineContentTypeAtem.DSK) {
+                            let dsk = deviceState.video.downstreamKeyers[mapping.index];
+                            _.extend(dsk, content.attributes);
+                        }
                         break;
                     case mapping_1.MappingAtemType.SuperSourceBox:
-                        obj = {
-                            video: {
-                                superSourceBoxes: obj
-                            }
-                        };
+                        if (content.type === TimelineContentTypeAtem.SSRC) {
+                            let ssrc = deviceState.video.superSourceBoxes[mapping.index];
+                            _.extend(ssrc, content.attributes);
+                        }
                         break;
                     case mapping_1.MappingAtemType.Auxilliary:
-                        obj = {
-                            video: {
-                                auxilliaries: obj
-                            }
-                        };
+                        if (content.type === TimelineContentTypeAtem.AUX) {
+                            let aux = deviceState.video.auxilliaries[mapping.index];
+                            _.extend(aux, content.attributes);
+                        }
                         break;
                     case mapping_1.MappingAtemType.MediaPlayer:
-                        obj = {
-                            mediaState: {
-                                players: obj
-                            }
-                        };
+                        if (content.type === TimelineContentTypeAtem.MEDIAPLAYER) {
+                            let ms = deviceState.media.players[mapping.index];
+                            _.extend(ms, content.attributes);
+                        }
                         break;
                 }
             }
-            const traverseState = (mutation, mutableObj) => {
-                for (const key in mutation) {
-                    if (typeof mutation[key] === 'object' && mutableObj[key]) {
-                        traverseState(mutation[key], mutableObj[key]);
-                    }
-                    else {
-                        mutableObj[key] = mutation[key];
-                    }
-                }
-            };
-            traverseState(obj, deviceState);
+            // const traverseState = (mutation, mutableObj) => {
+            // 	for (const key in mutation) {
+            // 		if (typeof mutation[key] === 'object' && mutableObj[key]) {
+            // 			traverseState(mutation[key], mutableObj[key])
+            // 		} else {
+            // 			mutableObj[key] = mutation[key]
+            // 		}
+            // 	}
+            // }
+            // traverseState(obj, deviceState)
         });
         return deviceState;
     }

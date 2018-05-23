@@ -16,11 +16,13 @@ export declare enum TimelineContentTypeAtem {
     DSK = "dsk",
     AUX = "aux",
     SSRC = "ssrc",
+    MEDIAPLAYER = "mp",
 }
 export declare class AtemDevice extends Device {
     private _queue;
     private _device;
     private _state;
+    private _initialized;
     private _commandReceiver;
     constructor(deviceId: string, deviceOptions: AtemDeviceOptions, options: any);
     /**
