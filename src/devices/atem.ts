@@ -23,13 +23,15 @@ export enum TimelineContentTypeAtem { //  Atem-state
 	ME = 'me',
 	DSK = 'dsk',
 	AUX = 'aux',
-	SSRC = 'ssrc'
+	SSRC = 'ssrc',
+	MEDIAPLAYER = 'mp'
 }
 export class AtemDevice extends Device {
 
 	private _queue: Array<any>
 	private _device: Atem
 	private _state: AtemState
+	private _initialized: boolean = false
 
 	private _commandReceiver: (time: number, cmd) => void
 
@@ -66,16 +68,39 @@ export class AtemDevice extends Device {
 			this._state = new AtemState()
 			this._device = new Atem()
 			this._device.connect(options.host, options.port)
-			this._device.once('connected', () => resolve(true))
+			this._device.once('connected', () => {
+				// check if state has been initialized:
+				if (typeof this._device.state.info.capabilities !== 'undefined') {
+					this._initialized = true
+					resolve(true)
+				} else {
+					let interval = setInterval(() => {
+						if (typeof this._device.state.info.capabilities !== 'undefined') {
+							clearInterval(interval)
+							this._initialized = true
+							resolve(true)
+						}
+					}, 100)
+				}
+			})
 		})
 	}
 	handleState (newState: TimelineState) {
 		// Handle this new state, at the point in time specified
+		// @ts-ignore
+		// console.log('handleState', JSON.stringify(newState, ' ', 2))
 
+		if (!this._initialized) {
+			// before it's initialized don't do anything
+			return
+		}
 		let oldState: TimelineState = this.getStateBefore(newState.time) || {time: 0, LLayers: {}, GLayers: {}}
 
 		let oldAtemState = this.convertStateToAtem(oldState)
 		let newAtemState = this.convertStateToAtem(newState)
+
+		// @ts-ignore
+		// console.log('newAtemState', JSON.stringify(newAtemState, ' ', 2))
 
 		let commandsToAchieveState: Array<AbstractCommand> = this._diffStates(oldAtemState, newAtemState)
 
@@ -101,67 +126,64 @@ export class AtemDevice extends Device {
 		return false
 	}
 	convertStateToAtem (state: TimelineState): DeviceState {
-		// @todo: convert the timeline state into something we can use
+		if (!this._initialized) throw Error('convertStateToAtem cannot be used before inititialized')
+
+		// Convert the timeline state into something we can use easier:
 		const deviceState = this._getDefaultState()
 
 		_.each(state.LLayers, (tlObject: TimelineResolvedObject, layerName: string) => {
-			let obj = tlObject.content
+			let content = tlObject.content
 			const mapping = this.mapping[layerName] as MappingAtem
 			if (mapping) {
-				if (mapping.index !== undefined) {
-					obj = {}
-					obj[mapping.index] = tlObject.content
-				}
+				if (!(mapping.index !== undefined && mapping.index >= 0)) return // index must be 0 or higher
+				// 	obj = {}
+				// 	obj[mapping.index] = tlObject.content
+				// }
 				switch (mapping.mappingType) {
 					case MappingAtemType.MixEffect:
-						obj = {
-							video: {
-								ME: obj
-							}
+						if (content.type === TimelineContentTypeAtem.ME) {
+							let me = deviceState.video.ME[mapping.index]
+							_.extend(me, content.attributes)
 						}
 						break
 					case MappingAtemType.DownStreamKeyer:
-						obj = {
-							video: {
-								downstreamKeyers: obj
-							}
+						if (content.type === TimelineContentTypeAtem.DSK) {
+							let dsk = deviceState.video.downstreamKeyers[mapping.index]
+							_.extend(dsk, content.attributes)
 						}
 						break
 					case MappingAtemType.SuperSourceBox:
-						obj = {
-							video: {
-								superSourceBoxes: obj
-							}
+						if (content.type === TimelineContentTypeAtem.SSRC) {
+							let ssrc = deviceState.video.superSourceBoxes[mapping.index]
+							_.extend(ssrc, content.attributes)
 						}
 						break
 					case MappingAtemType.Auxilliary:
-						obj = {
-							video: {
-								auxilliaries: obj
-							}
+						if (content.type === TimelineContentTypeAtem.AUX) {
+							let aux = deviceState.video.auxilliaries[mapping.index]
+							_.extend(aux, content.attributes)
 						}
 						break
 					case MappingAtemType.MediaPlayer:
-						obj = {
-							mediaState: {
-								players: obj
-							}
+						if (content.type === TimelineContentTypeAtem.MEDIAPLAYER) {
+							let ms = deviceState.media.players[mapping.index]
+							_.extend(ms, content.attributes)
 						}
 						break
 				}
 			}
 
-			const traverseState = (mutation, mutableObj) => {
-				for (const key in mutation) {
-					if (typeof mutation[key] === 'object' && mutableObj[key]) {
-						traverseState(mutation[key], mutableObj[key])
-					} else {
-						mutableObj[key] = mutation[key]
-					}
-				}
-			}
+			// const traverseState = (mutation, mutableObj) => {
+			// 	for (const key in mutation) {
+			// 		if (typeof mutation[key] === 'object' && mutableObj[key]) {
+			// 			traverseState(mutation[key], mutableObj[key])
+			// 		} else {
+			// 			mutableObj[key] = mutation[key]
+			// 		}
+			// 	}
+			// }
 
-			traverseState(obj, deviceState)
+			// traverseState(obj, deviceState)
 		})
 
 		return deviceState
