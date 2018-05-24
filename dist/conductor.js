@@ -44,7 +44,7 @@ class Conductor extends events_1.EventEmitter {
         if (options.autoInit) {
             this.init()
                 .catch((e) => {
-                console.log('Error during auto-init: ', e);
+                this.emit('error', 'Error during auto-init: ', e);
             });
         }
     }
@@ -60,9 +60,7 @@ class Conductor extends events_1.EventEmitter {
      * Returns a nice, synchronized time.
      */
     getCurrentTime() {
-        // TODO: Implement time sync, NTP procedure etc...
         if (this._getCurrentTime) {
-            // console.log(this._getCurrentTime)
             // return 0
             return this._getCurrentTime();
         }
@@ -101,40 +99,46 @@ class Conductor extends events_1.EventEmitter {
         return this.devices[deviceId];
     }
     addDevice(deviceId, deviceOptions) {
-        let newDevice;
-        if (deviceOptions.type === mapping_1.DeviceType.ABSTRACT) {
-            // Add Abstract device:
-            newDevice = new abstract_1.AbstractDevice(deviceId, deviceOptions, {
-                getCurrentTime: () => { return this.getCurrentTime(); }
+        try {
+            let newDevice;
+            if (deviceOptions.type === mapping_1.DeviceType.ABSTRACT) {
+                // Add Abstract device:
+                newDevice = new abstract_1.AbstractDevice(deviceId, deviceOptions, {
+                    getCurrentTime: () => { return this.getCurrentTime(); }
+                });
+            }
+            else if (deviceOptions.type === mapping_1.DeviceType.CASPARCG) {
+                // Add CasparCG device:
+                newDevice = new casparCG_1.CasparCGDevice(deviceId, deviceOptions, {
+                    getCurrentTime: () => { return this.getCurrentTime(); }
+                });
+            }
+            else if (deviceOptions.type === mapping_1.DeviceType.ATEM) {
+                newDevice = new atem_1.AtemDevice(deviceId, deviceOptions, {
+                    getCurrentTime: () => { return this.getCurrentTime(); }
+                });
+            }
+            else if (deviceOptions.type === mapping_1.DeviceType.HTTPSEND) {
+                newDevice = new httpSend_1.HttpSendDevice(deviceId, deviceOptions, {
+                    getCurrentTime: () => { return this.getCurrentTime(); }
+                });
+            }
+            else {
+                return Promise.reject('No matching device type for "' + deviceOptions.type + '" found');
+            }
+            this.emit('info', 'Initializing ' + mapping_1.DeviceType[deviceOptions.type] + '...');
+            this.devices[deviceId] = newDevice;
+            newDevice.mapping = this.mapping;
+            return newDevice.init(deviceOptions.options)
+                .then(() => {
+                console.log(mapping_1.DeviceType[deviceOptions.type] + ' initialized!');
+                return newDevice;
             });
         }
-        else if (deviceOptions.type === mapping_1.DeviceType.CASPARCG) {
-            // Add CasparCG device:
-            newDevice = new casparCG_1.CasparCGDevice(deviceId, deviceOptions, {
-                getCurrentTime: () => { return this.getCurrentTime(); }
-            });
+        catch (e) {
+            this.emit('error', e);
+            return Promise.reject(e);
         }
-        else if (deviceOptions.type === mapping_1.DeviceType.ATEM) {
-            newDevice = new atem_1.AtemDevice(deviceId, deviceOptions, {
-                getCurrentTime: () => { return this.getCurrentTime(); }
-            });
-        }
-        else if (deviceOptions.type === mapping_1.DeviceType.HTTPSEND) {
-            newDevice = new httpSend_1.HttpSendDevice(deviceId, deviceOptions, {
-                getCurrentTime: () => { return this.getCurrentTime(); }
-            });
-        }
-        else {
-            return Promise.reject('No matching device type for "' + deviceOptions.type + '" found');
-        }
-        console.log('Initializing ' + mapping_1.DeviceType[deviceOptions.type] + '...');
-        this.devices[deviceId] = newDevice;
-        newDevice.mapping = this.mapping;
-        return newDevice.init(deviceOptions.options)
-            .then(() => {
-            console.log(mapping_1.DeviceType[deviceOptions.type] + ' initialized!');
-            return newDevice;
-        });
     }
     removeDevice(deviceId) {
         let device = this.devices[deviceId];
@@ -191,106 +195,116 @@ class Conductor extends events_1.EventEmitter {
      * Resolves the timeline for the next resolve-time, generates the commands and passes on the commands.
      */
     _resolveTimeline() {
-        if (!this._isInitialized) {
-            console.log('TSR is not initialized yet');
-            return;
-        }
-        const now = this.getCurrentTime();
-        let resolveTime = this._nextResolveTime || now;
-        console.log('resolveTimeline ' + resolveTime + ' -----------------------------');
-        if (resolveTime > now + LOOKAHEADTIME) {
-            console.log('Too far ahead (' + resolveTime + ')');
-            this._triggerResolveTimeline(LOOKAHEADTIME);
-            return;
-        }
-        this._fixNowObjects(resolveTime);
-        let timeline = this.timeline;
-        _.each(timeline, (o) => {
-            delete o['parent'];
-            if (o.isGroup) {
-                if (o.content.objects) {
-                    _.each(o.content.objects, (o2) => {
-                        delete o2['parent'];
-                    });
-                }
+        let timeUntilNextResolve = LOOKAHEADTIME;
+        try {
+            if (!this._isInitialized) {
+                console.log('TSR is not initialized yet');
+                return;
             }
-        });
-        // @ts-ignore
-        // console.log('timeline', JSON.stringify(timeline, ' ', 2))
-        // Generate the state for that time:
-        let tlState = superfly_timeline_1.Resolver.getState(clone(timeline), resolveTime);
-        _.each(tlState.LLayers, (obj) => {
-            delete obj.parent;
-        });
-        _.each(tlState.GLayers, (obj) => {
-            delete obj.parent;
-        });
-        // @ts-ignore
-        // console.log('tlState', JSON.stringify(tlState.LLayers,' ', 2))
-        // Split the state into substates that are relevant for each device
-        let getFilteredLayers = (layers, device) => {
-            let filteredState = {};
-            _.each(layers, (o, layerId) => {
-                let mapping = this._mapping[o.LLayer + ''];
-                if (mapping) {
-                    if (mapping.deviceId === device.deviceId &&
-                        mapping.device === device.deviceType) {
-                        filteredState[layerId] = o;
+            const now = this.getCurrentTime();
+            let resolveTime = this._nextResolveTime || now;
+            console.log('resolveTimeline ' + resolveTime + ' -----------------------------');
+            if (resolveTime > now + LOOKAHEADTIME) {
+                console.log('Too far ahead (' + resolveTime + ')');
+                this._triggerResolveTimeline(LOOKAHEADTIME);
+                return;
+            }
+            this._fixNowObjects(resolveTime);
+            let timeline = this.timeline;
+            _.each(timeline, (o) => {
+                delete o['parent'];
+                if (o.isGroup) {
+                    if (o.content.objects) {
+                        _.each(o.content.objects, (o2) => {
+                            delete o2['parent'];
+                        });
                     }
                 }
             });
-            return filteredState;
-        };
-        _.each(this.devices, (device /*, deviceName: string*/) => {
-            // The subState contains only the parts of the state relevant to that device
-            let subState = {
-                time: tlState.time,
-                LLayers: getFilteredLayers(tlState.LLayers, device),
-                GLayers: getFilteredLayers(tlState.GLayers, device)
-            };
-            // console.log('State of device ' + device.deviceName, tlState.LLayers )
-            // Pass along the state to the device, it will generate its commands and execute them:
-            try {
-                device.handleState(subState);
-            }
-            catch (e) {
-                console.log('Error in device "' + device.deviceId + '"', e);
-            }
-        });
-        // Now that we've handled this point in time, it's time to determine what the next point in time is:
-        // console.log(tlState.time)
-        const timelineWindow = superfly_timeline_1.Resolver.getTimelineInWindow(timeline, tlState.time, tlState.time + LOOKAHEADTIME);
-        const nextEvents = superfly_timeline_1.Resolver.getNextEvents(timelineWindow, tlState.time + MINTIMEUNIT, 1);
-        let timeUntilNextResolve = LOOKAHEADTIME;
-        const now2 = this.getCurrentTime();
-        if (nextEvents.length) {
-            let nextEvent = nextEvents[0];
-            // console.log('nextEvent', nextEvent)
-            timeUntilNextResolve = Math.max(MINTRIGGERTIME, Math.min(LOOKAHEADTIME, (nextEvent.time - now2) - PREPARETIME));
-            // resolve at nextEvent.time next time:
-            this._nextResolveTime = nextEvent.time;
-        }
-        else {
-            // there's nothing ahead in the timeline
-            // Tell the devices that the future is clear:
-            _.each(this.devices, (device) => {
-                device.clearFuture(tlState.time);
+            // @ts-ignore
+            // console.log('timeline', JSON.stringify(timeline, ' ', 2))
+            // Generate the state for that time:
+            let tlState = superfly_timeline_1.Resolver.getState(clone(timeline), resolveTime);
+            _.each(tlState.LLayers, (obj) => {
+                delete obj.parent;
             });
-            // resolve at "now" then next time:
-            this._nextResolveTime = 0;
-        }
-        // Special function: send callback to Core
-        _.each(tlState.GLayers, (o) => {
-            if (o.content.callBack) {
-                // this._doOnTime.queue(resolveTime, o.id, o.content.callBack, o.content.callBackData)
-                // this._doOnTime.queue(o.resolved.startTime, o.id, o.content.callBack, o.content.callBackData)
-                this._doOnTime.queue(o.resolved.startTime, () => {
-                    this.emit('timelineCallback', o.resolved.startTime, o.id, o.content.callBack, o.content.callBackData);
+            _.each(tlState.GLayers, (obj) => {
+                delete obj.parent;
+            });
+            // @ts-ignore
+            // console.log('tlState', JSON.stringify(tlState.LLayers,' ', 2))
+            // Split the state into substates that are relevant for each device
+            let getFilteredLayers = (layers, device) => {
+                let filteredState = {};
+                _.each(layers, (o, layerId) => {
+                    let mapping = this._mapping[o.LLayer + ''];
+                    if (mapping) {
+                        if (mapping.deviceId === device.deviceId &&
+                            mapping.device === device.deviceType) {
+                            filteredState[layerId] = o;
+                        }
+                    }
                 });
+                return filteredState;
+            };
+            _.each(this.devices, (device /*, deviceName: string*/) => {
+                // The subState contains only the parts of the state relevant to that device
+                let subState = {
+                    time: tlState.time,
+                    LLayers: getFilteredLayers(tlState.LLayers, device),
+                    GLayers: getFilteredLayers(tlState.GLayers, device)
+                };
+                // console.log('State of device ' + device.deviceName, tlState.LLayers )
+                // Pass along the state to the device, it will generate its commands and execute them:
+                try {
+                    device.handleState(subState);
+                }
+                catch (e) {
+                    console.log('Error in device "' + device.deviceId + '"', e);
+                }
+            });
+            // Now that we've handled this point in time, it's time to determine what the next point in time is:
+            // console.log(tlState.time)
+            const timelineWindow = superfly_timeline_1.Resolver.getTimelineInWindow(timeline, tlState.time, tlState.time + LOOKAHEADTIME);
+            const nextEvents = superfly_timeline_1.Resolver.getNextEvents(timelineWindow, tlState.time + MINTIMEUNIT, 1);
+            const now2 = this.getCurrentTime();
+            if (nextEvents.length) {
+                let nextEvent = nextEvents[0];
+                // console.log('nextEvent', nextEvent)
+                timeUntilNextResolve = Math.max(MINTRIGGERTIME, Math.min(LOOKAHEADTIME, (nextEvent.time - now2) - PREPARETIME));
+                // resolve at nextEvent.time next time:
+                this._nextResolveTime = nextEvent.time;
             }
-        });
-        // console.log('this._nextResolveTime', this._nextResolveTime)
-        this._triggerResolveTimeline(timeUntilNextResolve);
+            else {
+                // there's nothing ahead in the timeline
+                // Tell the devices that the future is clear:
+                _.each(this.devices, (device) => {
+                    device.clearFuture(tlState.time);
+                });
+                // resolve at "now" then next time:
+                this._nextResolveTime = 0;
+            }
+            // Special function: send callback to Core
+            _.each(tlState.GLayers, (o) => {
+                if (o.content.callBack) {
+                    // this._doOnTime.queue(resolveTime, o.id, o.content.callBack, o.content.callBackData)
+                    // this._doOnTime.queue(o.resolved.startTime, o.id, o.content.callBack, o.content.callBackData)
+                    this._doOnTime.queue(o.resolved.startTime, () => {
+                        this.emit('timelineCallback', o.resolved.startTime, o.id, o.content.callBack, o.content.callBackData);
+                    });
+                }
+            });
+        }
+        catch (e) {
+            this.emit('error', e);
+        }
+        try {
+            // console.log('this._nextResolveTime', this._nextResolveTime)
+            this._triggerResolveTimeline(timeUntilNextResolve);
+        }
+        catch (e) {
+            this.emit('error', e);
+        }
     }
     _fixNowObjects(now) {
         let objectsFixed = [];
