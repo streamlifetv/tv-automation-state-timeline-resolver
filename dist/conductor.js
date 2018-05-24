@@ -37,7 +37,9 @@ class Conductor extends events_1.EventEmitter {
                 this._resolveTimeline();
             }
         }, 2500);
-        this._doOnTime = new doOnTime_1.DoOnTime(this.getCurrentTime);
+        this._doOnTime = new doOnTime_1.DoOnTime(() => {
+            return this.getCurrentTime();
+        });
         // this._doOnTime.on('callback', (...args) => {
         // 	this.emit('timelineCallback', ...args)
         // })
