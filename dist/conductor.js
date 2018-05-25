@@ -55,7 +55,7 @@ class Conductor extends events_1.EventEmitter {
      */
     init() {
         this._isInitialized = true;
-        this._resetResolver();
+        this.resetResolver();
         return Promise.resolve();
     }
     /**
@@ -92,7 +92,7 @@ class Conductor extends events_1.EventEmitter {
         // We've got a new timeline, anything could've happened at this point
         // Highest priority right now is to determine if any commands have to be sent RIGHT NOW
         // After that, we'll move further ahead in time, creating commands ready for scheduling
-        this._resetResolver();
+        this.resetResolver();
     }
     getDevices() {
         return _.values(this.devices);
@@ -113,7 +113,7 @@ class Conductor extends events_1.EventEmitter {
                 // Add CasparCG device:
                 newDevice = new casparCG_1.CasparCGDevice(deviceId, deviceOptions, {
                     getCurrentTime: () => { return this.getCurrentTime(); }
-                });
+                }, this);
             }
             else if (deviceOptions.type === mapping_1.DeviceType.ATEM) {
                 newDevice = new atem_1.AtemDevice(deviceId, deviceOptions, {
@@ -170,7 +170,7 @@ class Conductor extends events_1.EventEmitter {
      * Resets the resolve-time, so that the resolving will happen for the point-in time NOW
      * next time
      */
-    _resetResolver() {
+    resetResolver() {
         this._nextResolveTime = 0; // This will cause _resolveTimeline() to generate the state for NOW
         this._triggerResolveTimeline();
     }

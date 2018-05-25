@@ -16,7 +16,7 @@ var TimelineContentTypeCasparCg;
     TimelineContentTypeCasparCg["AUDIO"] = "audio";
 })(TimelineContentTypeCasparCg = exports.TimelineContentTypeCasparCg || (exports.TimelineContentTypeCasparCg = {}));
 class CasparCGDevice extends device_1.Device {
-    constructor(deviceId, deviceOptions, options) {
+    constructor(deviceId, deviceOptions, options, conductor) {
         super(deviceId, deviceOptions, options);
         this._queue = {};
         if (deviceOptions.options) {
@@ -28,6 +28,7 @@ class CasparCGDevice extends device_1.Device {
         this._ccgState = new casparcg_state_1.CasparCGState({
             currentTime: this.getCurrentTime
         });
+        this._conductor = conductor;
     }
     /**
      * Initiates the connection with CasparCG through the ccg-connection lib.
@@ -37,8 +38,18 @@ class CasparCGDevice extends device_1.Device {
             host: connectionOptions.host,
             port: connectionOptions.port,
             autoConnect: true,
+            virginServerCheck: true,
             onConnectionChanged: (connected) => {
                 this.emit('connectionChanged', connected);
+            }
+        });
+        this._ccg.on(casparcg_connection_1.CasparCGSocketStatusEvent.CONNECTED, (event) => {
+            if (event.valueOf().virginServer === true) {
+                // a "virgin server" was just restarted (so it is cleared & black).
+                // Otherwise it was probably just a loss of connection
+                this._ccgState.softClearState();
+                this.clearStates();
+                this._conductor.resetResolver(); // trigger a re-calc
             }
         });
         return Promise.all([

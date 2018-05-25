@@ -31,6 +31,7 @@ export declare class Device extends EventEmitter {
     getStateBefore(time: number): TimelineState | null;
     setState(state: any): void;
     cleanUpStates(removeBeforeTime: any, removeAfterTime: any): void;
+    clearStates(): void;
     mapping: Mappings;
     deviceId: string;
     readonly deviceName: string;

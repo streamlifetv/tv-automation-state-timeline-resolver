@@ -49,7 +49,7 @@ export declare class Conductor extends EventEmitter {
      * Resets the resolve-time, so that the resolving will happen for the point-in time NOW
      * next time
      */
-    private _resetResolver();
+    resetResolver(): void;
     /**
      * This is the main resolve-loop.
      */

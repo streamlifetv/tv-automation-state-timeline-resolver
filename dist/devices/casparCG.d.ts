@@ -2,6 +2,7 @@ import { Device, DeviceOptions } from './device';
 import { DeviceType } from './mapping';
 import { TimelineState } from 'superfly-timeline';
 import { CasparCG as StateNS } from 'casparcg-state';
+import { Conductor } from '../conductor';
 export interface CasparCGDeviceOptions extends DeviceOptions {
     options?: {
         commandReceiver?: (time: number, cmd) => void;
@@ -22,11 +23,12 @@ export declare enum TimelineContentTypeCasparCg {
 }
 export declare class CasparCGDevice extends Device {
     private _ccg;
+    private _conductor;
     private _ccgState;
     private _queue;
     private _commandReceiver;
     private _timeToTimecodeMap;
-    constructor(deviceId: string, deviceOptions: CasparCGDeviceOptions, options: any);
+    constructor(deviceId: string, deviceOptions: CasparCGDeviceOptions, options: any, conductor: Conductor);
     /**
      * Initiates the connection with CasparCG through the ccg-connection lib.
      */
