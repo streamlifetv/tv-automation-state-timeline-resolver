@@ -274,11 +274,13 @@ class Conductor extends events_1.EventEmitter {
                 let nextEvent = nextEvents[0];
                 // console.log('nextEvent', nextEvent)
                 timeUntilNextResolve = Math.max(MINTRIGGERTIME, Math.min(LOOKAHEADTIME, (nextEvent.time - now2) - PREPARETIME));
+                // console.log('timeUntilNextResolve', timeUntilNextResolve)
                 // resolve at nextEvent.time next time:
                 this._nextResolveTime = nextEvent.time;
             }
             else {
                 // there's nothing ahead in the timeline
+                // console.log('no next events')
                 // Tell the devices that the future is clear:
                 _.each(this.devices, (device) => {
                     device.clearFuture(tlState.time);
@@ -310,24 +312,65 @@ class Conductor extends events_1.EventEmitter {
     }
     _fixNowObjects(now) {
         let objectsFixed = [];
-        let fixObjects = (objs) => {
+        let setObjectTime = (o, time) => {
+            o.trigger.value = time; // set the objects to "now" so that they are resolved correctly temporarily
+            objectsFixed.push({
+                id: o.id,
+                time: time
+            });
+        };
+        let timeline = this.timeline;
+        // First: fix the ones on the first level (i e not in groups), because they are easy:
+        _.each(timeline, (o) => {
+            if ((o.trigger || {}).type === superfly_timeline_1.TriggerType.TIME_ABSOLUTE &&
+                o.trigger.value === 'now') {
+                setObjectTime(o, now);
+            }
+        });
+        // Then, resolve the timeline to be able to set "now" inside groups, relative to parents:
+        let dontIterateAgain;
+        let wouldLikeToIterateAgain;
+        let tl;
+        let tld;
+        let fixObjects = (objs, parentObject) => {
             _.each(objs, (o) => {
                 if ((o.trigger || {}).type === superfly_timeline_1.TriggerType.TIME_ABSOLUTE &&
                     o.trigger.value === 'now') {
-                    o.trigger.value = now; // set the objects to "now" so that they are resolved correctly right now
-                    objectsFixed.push(o.id);
+                    // find parent, and set relative to that
+                    if (parentObject) {
+                        let developedParent = _.findWhere(tld.groups, { id: parentObject.id });
+                        if (developedParent && developedParent['resolved'].startTime) {
+                            dontIterateAgain = false;
+                            setObjectTime(o, now - developedParent['resolved'].startTime);
+                        }
+                        else {
+                            // the parent isn't found, it's probably not resolved (yet), try iterating once more:
+                            wouldLikeToIterateAgain = true;
+                        }
+                    }
+                    else {
+                        dontIterateAgain = false;
+                        setObjectTime(o, now);
+                    }
                 }
-                if (o.content.objects) {
-                    fixObjects(o.content.objects);
+                if (o.isGroup && o.content.objects) {
+                    fixObjects(o.content.objects, o);
                 }
             });
         };
-        fixObjects(this.timeline);
+        for (let i = 0; i < 10; i++) {
+            wouldLikeToIterateAgain = false;
+            dontIterateAgain = true;
+            tl = superfly_timeline_1.Resolver.getTimelineInWindow(timeline);
+            tld = superfly_timeline_1.Resolver.developTimelineAroundTime(tl, now);
+            fixObjects(timeline);
+            if (!wouldLikeToIterateAgain && dontIterateAgain)
+                break;
+        }
+        // fixObjects(this.timeline, 0)
+        // console.log('objectsFixed', objectsFixed)
         if (objectsFixed.length) {
-            let r = {
-                time: now,
-                objectIds: objectsFixed
-            };
+            let r = objectsFixed;
             // console.log('setTimelineTriggerTime', r)
             this.emit('setTimelineTriggerTime', r);
         }

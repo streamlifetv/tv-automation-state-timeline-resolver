@@ -6,10 +6,10 @@ import { EventEmitter } from 'events';
 export interface TimelineContentObject extends TimelineObject {
 }
 export { TriggerType };
-export interface TimelineTriggerTimeResult {
+export declare type TimelineTriggerTimeResult = Array<{
+    id: string;
     time: number;
-    objectIds: Array<string>;
-}
+}>;
 export { Device } from './devices/device';
 export interface ConductorOptions {
     initializeAsClear: boolean;

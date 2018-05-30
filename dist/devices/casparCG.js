@@ -19,6 +19,7 @@ class CasparCGDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options, conductor) {
         super(deviceId, deviceOptions, options);
         this._queue = {};
+        this._timeToTimecodeMap = { time: 0, timecode: 0 };
         if (deviceOptions.options) {
             if (deviceOptions.options.commandReceiver)
                 this._commandReceiver = deviceOptions.options.commandReceiver;
@@ -66,20 +67,26 @@ class CasparCGDevice extends device_1.Device {
                     resolve(true);
                 }).catch((e) => reject(e));
             }), new Promise((resolve, reject) => {
-                this._ccg.time(1).then((cmd) => {
-                    let segments = cmd.response.data.split(':');
-                    let time = 0;
-                    // fields:
-                    time += Number(segments[3]) * 1000 / 50;
-                    // seconds
-                    time += Number(segments[2]) * 1000;
-                    // minutes
-                    time += Number(segments[1]) * 60 * 1000;
-                    // hours
-                    time += Number(segments[0]) * 60 * 60 * 1000;
-                    this._timeToTimecodeMap = { time: this.getCurrentTime(), timecode: time };
+                if (connectionOptions.syncTimecode) {
+                    this._ccg.time(1).then((cmd) => {
+                        let segments = cmd.response.data.split(':');
+                        let time = 0;
+                        // fields:
+                        time += Number(segments[3]) * 1000 / 50;
+                        // seconds
+                        time += Number(segments[2]) * 1000;
+                        // minutes
+                        time += Number(segments[1]) * 60 * 1000;
+                        // hours
+                        time += Number(segments[0]) * 60 * 60 * 1000;
+                        this._timeToTimecodeMap = { time: this.getCurrentTime(), timecode: time };
+                        resolve(true);
+                    }).catch(() => reject());
+                }
+                else {
+                    this._timeToTimecodeMap = { time: 0, timecode: 0 };
                     resolve(true);
-                }).catch(() => reject());
+                }
             })
         ]).then(() => {
             return true;

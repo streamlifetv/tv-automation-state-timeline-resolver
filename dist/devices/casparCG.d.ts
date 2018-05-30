@@ -11,6 +11,7 @@ export interface CasparCGDeviceOptions extends DeviceOptions {
 export interface CasparCGOptions {
     host: string;
     port: number;
+    syncTimecode?: boolean;
 }
 export declare enum TimelineContentTypeCasparCg {
     VIDEO = "video",
