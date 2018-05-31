@@ -18,6 +18,7 @@ export declare enum TimelineContentTypeCasparCg {
     IP = "ip",
     INPUT = "input",
     TEMPLATE = "template",
+    HTMLPAGE = "htmlpage",
     ROUTE = "route",
     RECORD = "record",
     AUDIO = "audio",

@@ -11,6 +11,7 @@ var TimelineContentTypeCasparCg;
     TimelineContentTypeCasparCg["IP"] = "ip";
     TimelineContentTypeCasparCg["INPUT"] = "input";
     TimelineContentTypeCasparCg["TEMPLATE"] = "template";
+    TimelineContentTypeCasparCg["HTMLPAGE"] = "htmlpage";
     TimelineContentTypeCasparCg["ROUTE"] = "route";
     TimelineContentTypeCasparCg["RECORD"] = "record";
     TimelineContentTypeCasparCg["AUDIO"] = "audio";
@@ -221,6 +222,16 @@ class CasparCGDevice extends device_1.Device {
                         templateType: layer.content.attributes.type || 'html',
                         templateData: layer.content.attributes.data,
                         cgStop: layer.content.attributes.useStopCommand
+                    };
+                    stateLayer = l;
+                }
+                else if (layer.content.type === TimelineContentTypeCasparCg.HTMLPAGE) {
+                    let l = {
+                        layerNo: mapping.layer,
+                        content: casparcg_state_1.CasparCG.LayerContentType.HTMLPAGE,
+                        media: layer.content.attributes.url,
+                        playTime: layer.resolved.startTime || null,
+                        playing: true
                     };
                     stateLayer = l;
                 }
