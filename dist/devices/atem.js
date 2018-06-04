@@ -115,8 +115,8 @@ class AtemDevice extends device_1.Device {
                         break;
                     case mapping_1.MappingAtemType.SuperSourceBox:
                         if (content.type === TimelineContentTypeAtem.SSRC) {
-                            let ssrc = deviceState.video.superSourceBoxes[mapping.index];
-                            _.extend(ssrc, content.attributes);
+                            let ssrc = deviceState.video.superSourceBoxes;
+                            _.extend(ssrc, content.attributes.boxes);
                         }
                         break;
                     case mapping_1.MappingAtemType.Auxilliary:
@@ -170,7 +170,7 @@ class AtemDevice extends device_1.Device {
         for (let i = 0; i < this._device.state.info.capabilities.auxilliaries; i++) {
             deviceState.video.auxilliaries[i] = JSON.parse(JSON.stringify(atem_state_1.Defaults.Video.defaultInput));
         }
-        for (let i = 0; i < this._device.state.info.capabilities.superSources; i++) {
+        for (let i = 0; i < 4 /* @todo from _SSC */; i++) {
             deviceState.video.superSourceBoxes[i] = JSON.parse(JSON.stringify(atem_state_1.Defaults.Video.SuperSourceBox));
         }
         return deviceState;

@@ -14,6 +14,6 @@ var DeviceType;
     DeviceType[DeviceType["CASPARCG"] = 1] = "CASPARCG";
     DeviceType[DeviceType["ATEM"] = 2] = "ATEM";
     DeviceType[DeviceType["LAWO"] = 3] = "LAWO";
-    DeviceType[DeviceType["HTTPSEND"] = 4] = "HTTPSEND"; // yet to be implemented
+    DeviceType[DeviceType["HTTPSEND"] = 4] = "HTTPSEND";
 })(DeviceType = exports.DeviceType || (exports.DeviceType = {}));
 //# sourceMappingURL=mapping.js.map
