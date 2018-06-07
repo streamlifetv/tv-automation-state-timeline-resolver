@@ -126,7 +126,7 @@ class Conductor extends events_1.EventEmitter {
                 });
             }
             else {
-                return Promise.reject('No matching device type for "' + deviceOptions.type + '" found');
+                return Promise.reject('No matching device type for "' + deviceOptions.type + '" ("' + mapping_1.DeviceType[deviceOptions.type] + '") found');
             }
             this.emit('info', 'Initializing ' + mapping_1.DeviceType[deviceOptions.type] + '...');
             this.devices[deviceId] = newDevice;
