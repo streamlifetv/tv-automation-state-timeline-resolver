@@ -17,6 +17,7 @@ class AtemDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options) {
         super(deviceId, deviceOptions, options);
         this._initialized = false;
+        this._connected = false; // note: ideally this should be replaced by this._device.connected
         if (deviceOptions.options) {
             if (deviceOptions.options.commandReceiver)
                 this._commandReceiver = deviceOptions.options.commandReceiver;
@@ -47,10 +48,31 @@ class AtemDevice extends device_1.Device {
             this._device = new atem_connection_1.Atem();
             this._device.connect(options.host, options.port);
             this._device.once('connected', () => {
+                // console.log('-------------- ATEM CONNECTED')
+                // this.emit('connectionChanged', true)
                 // check if state has been initialized:
+                this._connected = true;
                 this._initialized = true;
                 resolve(true);
             });
+            this._device.on('connected', () => {
+                this._connected = true;
+                this.emit('connectionChanged', true);
+            });
+            this._device.on('disconnected', () => {
+                this._connected = false;
+                this.emit('connectionChanged', false);
+            });
+        });
+    }
+    terminate() {
+        return new Promise((resolve) => {
+            // TODO: implement dispose function in atem-connection
+            // this._device.dispose()
+            // .then(() => {
+            // resolve(true)
+            // })
+            resolve(true);
         });
     }
     handleState(newState) {
@@ -84,7 +106,7 @@ class AtemDevice extends device_1.Device {
         this._queue = _.reject(this._queue, (q) => { return q.time > clearAfterTime; });
     }
     get connected() {
-        return false;
+        return this._connected;
     }
     convertStateToAtem(state) {
         if (!this._initialized)

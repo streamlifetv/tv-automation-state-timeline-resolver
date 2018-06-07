@@ -23,12 +23,14 @@ export declare class AtemDevice extends Device {
     private _device;
     private _state;
     private _initialized;
+    private _connected;
     private _commandReceiver;
     constructor(deviceId: string, deviceOptions: AtemDeviceOptions, options: any);
     /**
      * Initiates the connection with the ATEM through the atem-connection lib.
      */
     init(options: AtemOptions): Promise<boolean>;
+    terminate(): Promise<boolean>;
     handleState(newState: TimelineState): void;
     clearFuture(clearAfterTime: number): void;
     readonly connected: boolean;
