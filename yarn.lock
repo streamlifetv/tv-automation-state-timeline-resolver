@@ -345,6 +345,13 @@ asynckit@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
 
+atem-connection@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/atem-connection/-/atem-connection-0.1.1.tgz#a7831b526d7d05e9ca6391b48d446275221e8cd2"
+  dependencies:
+    pngjs "^3.3.2"
+    tslib "^1.9.0"
+
 "atem-connection@git+https://github.com/nrkno/tv-automation-atem-connection#dist":
   version "0.0.0"
   resolved "git+https://github.com/nrkno/tv-automation-atem-connection#cdbb450333e7c9d8b96afb44f1e79f676d643950"
@@ -354,7 +361,7 @@ asynckit@^0.4.0:
 
 "atem-state@git+https://github.com/nrkno/tv-automation-atem-state#dist":
   version "0.0.0"
-  resolved "git+https://github.com/nrkno/tv-automation-atem-state#98b5318cb5fbccfc1dabbca8ae89cc3a515eaf2e"
+  resolved "git+https://github.com/nrkno/tv-automation-atem-state#904d379fe50029ff54578179be1bcfcff28a860e"
   dependencies:
     atem-connection "git+https://github.com/nrkno/tv-automation-atem-connection#dist"
     tslib "^1.9.0"
