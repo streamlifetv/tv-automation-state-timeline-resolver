@@ -3,7 +3,7 @@ import { DeviceType } from './mapping';
 import { TimelineState } from 'superfly-timeline';
 export interface HttpSendDeviceOptions extends DeviceOptions {
     options?: {
-        commandReceiver?: (time: number, cmd) => void;
+        commandReceiver?: (time: number, cmd: any) => void;
     };
 }
 export declare class HttpSendDevice extends Device {
@@ -22,7 +22,7 @@ export declare class HttpSendDevice extends Device {
     readonly deviceType: DeviceType;
     readonly deviceName: string;
     readonly queue: any[];
-    private _addToQueue(commandsToAchieveState, time);
-    private _diffStates(oldhttpSendState, newhttpSendState);
-    private _defaultCommandReceiver(time, cmd);
+    private _addToQueue;
+    private _diffStates;
+    private _defaultCommandReceiver;
 }

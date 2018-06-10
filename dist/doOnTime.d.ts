@@ -14,5 +14,5 @@ export declare class DoOnTime extends EventEmitter {
         time: number;
     }[];
     clearQueueAfter(time: any): void;
-    private _checkQueue();
+    private _checkQueue;
 }

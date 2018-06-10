@@ -25,12 +25,12 @@ export declare enum MappingAtemType {
     DownStreamKeyer = 1,
     SuperSourceBox = 2,
     Auxilliary = 3,
-    MediaPlayer = 4,
+    MediaPlayer = 4
 }
 export declare enum DeviceType {
     ABSTRACT = 0,
     CASPARCG = 1,
     ATEM = 2,
     LAWO = 3,
-    HTTPSEND = 4,
+    HTTPSEND = 4
 }

@@ -3,7 +3,7 @@ import { DeviceType } from './mapping';
 import { TimelineState } from 'superfly-timeline';
 export interface AbstractDeviceOptions extends DeviceOptions {
     options?: {
-        commandReceiver?: (time: number, cmd) => void;
+        commandReceiver?: (time: number, cmd: any) => void;
     };
 }
 export declare class AbstractDevice extends Device {
@@ -21,6 +21,6 @@ export declare class AbstractDevice extends Device {
     readonly deviceType: DeviceType;
     readonly deviceName: string;
     readonly queue: any[];
-    private _diffStates(oldAbstractState, newAbstractState);
-    private _defaultCommandReceiver(time, cmd);
+    private _diffStates;
+    private _defaultCommandReceiver;
 }

@@ -8,13 +8,14 @@ const casparcg_state_1 = require("casparcg-state");
 var TimelineContentTypeCasparCg;
 (function (TimelineContentTypeCasparCg) {
     TimelineContentTypeCasparCg["VIDEO"] = "video";
+    TimelineContentTypeCasparCg["AUDIO"] = "audio";
+    TimelineContentTypeCasparCg["MEDIA"] = "media";
     TimelineContentTypeCasparCg["IP"] = "ip";
     TimelineContentTypeCasparCg["INPUT"] = "input";
     TimelineContentTypeCasparCg["TEMPLATE"] = "template";
     TimelineContentTypeCasparCg["HTMLPAGE"] = "htmlpage";
     TimelineContentTypeCasparCg["ROUTE"] = "route";
     TimelineContentTypeCasparCg["RECORD"] = "record";
-    TimelineContentTypeCasparCg["AUDIO"] = "audio";
 })(TimelineContentTypeCasparCg = exports.TimelineContentTypeCasparCg || (exports.TimelineContentTypeCasparCg = {}));
 class CasparCGDevice extends device_1.Device {
     constructor(deviceId, deviceOptions, options, conductor) {
@@ -176,7 +177,9 @@ class CasparCGDevice extends device_1.Device {
                 channel.fps = 50 / 1000; // 50 fps over 1000ms
                 caspar.channels[channel.channelNo] = channel;
                 let stateLayer = null;
-                if (layer.content.type === TimelineContentTypeCasparCg.VIDEO) {
+                if (layer.content.type === TimelineContentTypeCasparCg.VIDEO || // to be deprecated & replaced by MEDIA
+                    layer.content.type === TimelineContentTypeCasparCg.AUDIO || // to be deprecated & replaced by MEDIA
+                    layer.content.type === TimelineContentTypeCasparCg.MEDIA) {
                     let l = {
                         layerNo: mapping.layer,
                         content: casparcg_state_1.CasparCG.LayerContentType.MEDIA,

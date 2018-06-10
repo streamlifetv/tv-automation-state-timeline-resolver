@@ -5,7 +5,7 @@ import { CasparCG as StateNS } from 'casparcg-state';
 import { Conductor } from '../conductor';
 export interface CasparCGDeviceOptions extends DeviceOptions {
     options?: {
-        commandReceiver?: (time: number, cmd) => void;
+        commandReceiver?: (time: number, cmd: any) => void;
     };
 }
 export interface CasparCGOptions {
@@ -15,13 +15,14 @@ export interface CasparCGOptions {
 }
 export declare enum TimelineContentTypeCasparCg {
     VIDEO = "video",
+    AUDIO = "audio",
+    MEDIA = "media",
     IP = "ip",
     INPUT = "input",
     TEMPLATE = "template",
     HTMLPAGE = "htmlpage",
     ROUTE = "route",
-    RECORD = "record",
-    AUDIO = "audio",
+    RECORD = "record"
 }
 export declare class CasparCGDevice extends Device {
     private _ccg;
@@ -52,8 +53,8 @@ export declare class CasparCGDevice extends Device {
      * @param timelineState The timeline state to generate from.
      */
     convertStateToCaspar(timelineState: TimelineState): StateNS.State;
-    private _diffStates(oldState, newState);
-    private _addToQueue(commandsToAchieveState, oldState, time);
-    private _defaultCommandReceiver(time, cmd);
-    private convertTimeToTimecode(time);
+    private _diffStates;
+    private _addToQueue;
+    private _defaultCommandReceiver;
+    private convertTimeToTimecode;
 }

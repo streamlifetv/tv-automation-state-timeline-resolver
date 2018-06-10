@@ -53,10 +53,10 @@ export declare class Conductor extends EventEmitter {
     /**
      * This is the main resolve-loop.
      */
-    private _triggerResolveTimeline(timeUntilTrigger?);
+    private _triggerResolveTimeline;
     /**
      * Resolves the timeline for the next resolve-time, generates the commands and passes on the commands.
      */
-    private _resolveTimeline();
-    private _fixNowObjects(now);
+    private _resolveTimeline;
+    private _fixNowObjects;
 }

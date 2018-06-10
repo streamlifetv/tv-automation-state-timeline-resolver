@@ -4,7 +4,7 @@ import { TimelineState } from 'superfly-timeline';
 import { State as DeviceState } from 'atem-state';
 export interface AtemDeviceOptions extends DeviceOptions {
     options?: {
-        commandReceiver?: (time: number, cmd) => void;
+        commandReceiver?: (time: number, cmd: any) => void;
     };
 }
 export interface AtemOptions {
@@ -16,7 +16,7 @@ export declare enum TimelineContentTypeAtem {
     DSK = "dsk",
     AUX = "aux",
     SSRC = "ssrc",
-    MEDIAPLAYER = "mp",
+    MEDIAPLAYER = "mp"
 }
 export declare class AtemDevice extends Device {
     private _queue;
@@ -38,7 +38,7 @@ export declare class AtemDevice extends Device {
     readonly deviceType: DeviceType;
     readonly deviceName: string;
     readonly queue: any[];
-    private _diffStates(oldAbstractState, newAbstractState);
-    private _getDefaultState();
-    private _defaultCommandReceiver(time, command);
+    private _diffStates;
+    private _getDefaultState;
+    private _defaultCommandReceiver;
 }
