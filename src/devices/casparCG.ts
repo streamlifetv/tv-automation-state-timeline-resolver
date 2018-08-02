@@ -391,16 +391,21 @@ export class CasparCGDevice extends Device {
 					}
 					stateLayer.layerNo = mapping.layer
 					if (layer.content.isBackgroundLayer) {
+						let l: StateNS.NextUp = {
+							...stateLayer,
+							auto: layer.content.backgroundAuto === true
+						}
 						if (channel.layers[mapping.layer]) {
-							channel.layers[mapping.layer].nextUp = stateLayer
+							(channel.layers[mapping.layer] as StateNS.IMediaLayer).nextUp = l
 						} else {
-							channel.layers[mapping.layer] = {
+							let l2: StateNS.IEmptyLayer = {
 								layerNo: mapping.layer,
 								content: StateNS.LayerContentType.NOTHING,
 								playing: false,
 								pauseTime: 0,
-								nextUp: stateLayer
+								nextUp: l
 							}
+							channel.layers[mapping.layer] = l2
 						}
 					} else {
 						channel.layers[mapping.layer] = stateLayer
