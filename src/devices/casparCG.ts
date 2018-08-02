@@ -390,7 +390,21 @@ export class CasparCGDevice extends Device {
 						stateLayer.mixer = mixer
 					}
 					stateLayer.layerNo = mapping.layer
-					channel.layers[mapping.layer] = stateLayer
+					if (layer.content.isBackgroundLayer) {
+						if (channel.layers[mapping.layer]) {
+							channel.layers[mapping.layer].nextUp = stateLayer
+						} else {
+							channel.layers[mapping.layer] = {
+								layerNo: mapping.layer,
+								content: StateNS.LayerContentType.NOTHING,
+								playing: false,
+								pauseTime: 0,
+								nextUp: stateLayer
+							}
+						}
+					} else {
+						channel.layers[mapping.layer] = stateLayer
+					}
 				}
 			}
 
